@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # MongoDB for storing emails
+  mongodb:
+    image: mongo:7.0
+    container_name: tempmail-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: tempmail
+    networks:
+      - tempmail-network
+
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    container_name: tempmail-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - tempmail-network
+
+  # Backend Go server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tempmail-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "2525:2525"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=tempmail
+      - REDIS_URL=redis://redis:6379
+      - EMAIL_DOMAIN=your-tempmail.info
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_PORT=8080
+      - SMTP_PORT=2525
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - tempmail-network
+
+  # Frontend Next.js app
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tempmail-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8080
+      - NEXT_PUBLIC_EMAIL_DOMAIN=your-tempmail.info
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - tempmail-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tempmail-network:
+    driver: bridge
+

@@ -1,90 +1,128 @@
-# Temp Mail 365 - Temporary Email Service
+# 📧 Temp Mail 365 - Temporary Email Service
 
-A modern, privacy-focused temporary email service built with Next.js, Go, MongoDB, and Redis.
+A modern, secure temporary email service built with Go, Next.js, MongoDB, and Redis. Provides disposable email addresses with real-time notifications and end-to-end encryption.
 
-## 🌟 Features
+## ✨ Features
 
-- **Zero Registration**: No signup required, instant email generation
-- **Real-time Updates**: WebSocket integration for instant email notifications
-- **Customizable Lifetime**: Choose between 5, 10, 30, or 60 minutes
-- **Privacy First**: Zero-logging policy, no IP addresses stored
-- **End-to-End Encryption**: AES-256-GCM encryption for email content
-- **Auto-Deletion**: Emails and mailboxes automatically deleted after expiration
-- **Multi-language Support**: 9 languages (English, Russian, Chinese, German, French, Spanish, Korean, Japanese, Italian)
-- **Responsive Design**: Beautiful gradient UI with smooth animations
-- **Comprehensive Documentation**: Tutorials, FAQ, Blog, Privacy Policy, Terms of Service
+- **🔒 Secure & Private**: AES-256-GCM encryption, zero-logging policy, auto-deletion
+- **⚡ Real-time**: WebSocket notifications for instant email updates
+- **📬 Full SMTP**: Complete email reception with MIME parsing
+- **🎨 Modern UI**: Clean, responsive interface built with Next.js and TailwindCSS
+- **🐳 Docker Ready**: Complete containerized setup with Docker Compose
+- **🌍 Multi-language**: Support for 9+ languages
+- **🚀 Production Ready**: Rate limiting, health checks, graceful shutdown
 
 ## 🏗️ Architecture
 
-### Frontend
-- **Framework**: Next.js 14 with React 18 and App Router
-- **Styling**: TailwindCSS with custom gradients
-- **Language**: TypeScript
-- **State Management**: React Hooks + localStorage
-- **Real-time**: WebSocket client with auto-reconnection
-- **Icons**: Lucide React
-
-### Backend
-- **Language**: Go 1.21+
-- **SMTP Server**: Custom implementation using go-smtp
-- **REST API**: Gin web framework
-- **WebSocket**: Gorilla WebSocket
-- **Databases**: MongoDB (emails) + Redis (caching, pub/sub)
-- **Encryption**: AES-256-GCM for email content
-
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Security**: HTTPS/WSS (TLS 1.3), zero-logging
-- **Auto-cleanup**: MongoDB TTL indexes
+```
+┌─────────────────┐
+│   Frontend      │
+│   (Next.js)     │
+└────────┬────────┘
+         │
+         ↓
+┌─────────────────┐      ┌──────────────┐
+│   API Gateway   │←────→│  WebSocket   │
+│   (Gin Router)  │      │     Hub      │
+└────────┬────────┘      └──────┬───────┘
+         │                      │
+         ├──────────────────────┤
+         ↓                      ↓
+┌─────────────────┐      ┌──────────────┐
+│  Repositories   │      │ SMTP Server  │
+│ (Email/Mailbox) │      │   + Parser   │
+└────────┬────────┘      └──────┬───────┘
+         │                      │
+         ├──────────────────────┤
+         ↓                      ↓
+┌─────────────────┬──────────────────┐
+│    MongoDB      │      Redis       │
+│  (Email Store)  │  (Mailbox State) │
+└─────────────────┴──────────────────┘
+```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Git
+- Docker & Docker Compose
+- (Optional) Go 1.21+ for local development
+- (Optional) Node.js 18+ for local development
 
-### Installation
+### 1. Clone the Repository
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/temp-mail-365.git
-   cd temp-mail-365
-   ```
+```bash
+git clone https://github.com/ARTEMKOPIK/Temp-Mail-NEW-365.git
+cd Temp-Mail-NEW-365
+```
 
-2. **Configure environment variables**
+### 2. Configure Environment
 
-   Backend (.env in project root):
-   ```bash
-   # Copy from .env.example
-   cp .env.example .env
-   
-   # Edit and set your values
-   nano .env
-   ```
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-   Frontend (frontend/.env.local):
-   ```bash
-   # Copy from example
-   cp frontend/.env.local.example frontend/.env.local
-   
-   # Edit if needed (defaults work for local development)
-   nano frontend/.env.local
-   ```
+**Important**: Change these values in production:
+- `ENCRYPTION_KEY`: 32-byte encryption key
+- `JWT_SECRET`: Secret for JWT tokens
+- `EMAIL_DOMAIN`: Your domain name
 
-3. **Start the services**
-   ```bash
-   docker-compose up -d
-   ```
+### 3. Start Services
 
-4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080
-   - SMTP Server: localhost:2525
+```bash
+docker-compose up -d
+```
 
-### Manual Setup (Without Docker)
+This will start:
+- MongoDB on `localhost:27017`
+- Redis on `localhost:6379`
+- Backend API on `localhost:8080`
+- SMTP Server on `localhost:2525`
+- Frontend on `localhost:3000`
 
-#### Backend
+### 4. Access the Application
+
+Open your browser: **http://localhost:3000**
+
+## 📡 API Endpoints
+
+### Mailbox Management
+- `POST /api/mailbox` - Create new mailbox
+- `GET /api/mailbox/:address` - Get mailbox info
+- `DELETE /api/mailbox/:address` - Delete mailbox
+- `GET /api/mailbox/:address/emails` - Get all emails
+
+### Email Operations
+- `GET /api/email/:id` - Get full email
+- `DELETE /api/email/:id` - Delete email
+
+### WebSocket
+- `GET /api/ws/mailbox/:address` - WebSocket connection for real-time updates
+
+### Health Check
+- `GET /health` - Service health status
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_PORT` | 8080 | Backend API port |
+| `SMTP_PORT` | 2525 | SMTP server port |
+| `MONGO_URI` | mongodb://mongo:27017 | MongoDB connection string |
+| `MONGO_DB` | tempmail | MongoDB database name |
+| `REDIS_URL` | redis://redis:6379 | Redis connection string |
+| `EMAIL_DOMAIN` | your-tempmail.info | Email domain |
+| `EMAIL_EXPIRY_MINUTES` | 60 | Email lifetime in minutes |
+| `ENCRYPTION_KEY` | *required* | 32-byte encryption key |
+| `RATE_LIMIT_REQUESTS` | 100 | Max requests per window |
+| `RATE_LIMIT_WINDOW` | 60 | Rate limit window (seconds) |
+
+## 🛠️ Development
+
+### Backend Development
 
 ```bash
 cd backend
@@ -92,21 +130,11 @@ cd backend
 # Install dependencies
 go mod download
 
-# Set environment variables (see .env.example)
-export SMTP_PORT=2525
-export BACKEND_PORT=8080
-export MONGO_URL=mongodb://localhost:27017
-export MONGO_DATABASE=tempmail
-export REDIS_URL=redis://localhost:6379
-export EMAIL_DOMAIN=your-tempmail.info
-export ENCRYPTION_KEY=$(openssl rand -hex 32)
-export FRONTEND_URL=http://localhost:3000
-
-# Run the server
+# Run locally
 go run main.go
 ```
 
-#### Frontend
+### Frontend Development
 
 ```bash
 cd frontend
@@ -114,160 +142,169 @@ cd frontend
 # Install dependencies
 npm install
 
-# Set environment variables
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
-echo "NEXT_PUBLIC_WS_URL=ws://localhost:8080" >> .env.local
-echo "NEXT_PUBLIC_EMAIL_DOMAIN=your-tempmail.info" >> .env.local
-
-# Run development server
+# Run dev server
 npm run dev
-
-# Or build for production
-npm run build
-npm start
 ```
-
-## 📁 Project Structure
-
-```
-temp-mail-365/
-├── backend/
-│   ├── internal/
-│   │   ├── api/           # REST API handlers and routing
-│   │   ├── config/        # Configuration management
-│   │   ├── crypto/        # Encryption service
-│   │   ├── database/      # MongoDB and Redis clients
-│   │   ├── models/        # Data models
-│   │   ├── repository/    # Data access layer
-│   │   ├── smtp/          # SMTP server implementation
-│   │   └── websocket/     # WebSocket hub and clients
-│   ├── go.mod
-│   ├── go.sum
-│   ├── main.go
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── app/           # Next.js pages and layouts
-│   │   │   ├── page.tsx   # Homepage
-│   │   │   ├── faq/       # FAQ page
-│   │   │   ├── tutorials/ # Tutorials page
-│   │   │   ├── blog/      # Blog listing
-│   │   │   ├── contact/   # Contact page
-│   │   │   ├── privacy/   # Privacy Policy
-│   │   │   └── terms/     # Terms of Service
-│   │   └── lib/           # Utilities and API clients
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── Dockerfile
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-## 🔐 Security
-
-- **Zero Logging**: No IP addresses, browser fingerprints, or personal data stored
-- **Encryption**: AES-256-GCM for email content at rest
-- **Secure Transmission**: HTTPS/WSS with TLS 1.3
-- **Auto-Deletion**: All data permanently deleted after expiration
-- **No Third-Party Tracking**: No analytics, no cookies, no tracking
-- **Input Validation**: All API inputs validated and sanitized
-
-## 🌐 API Documentation
-
-### REST API Endpoints
-
-#### Mailbox
-
-- `POST /api/mailbox` - Create new temporary mailbox
-  ```json
-  {
-    "expiryMinutes": 10
-  }
-  ```
-
-- `GET /api/mailbox/:address` - Get mailbox information
-- `DELETE /api/mailbox/:address` - Delete mailbox
-- `GET /api/mailbox/:address/emails` - List all emails
-
-#### Email
-
-- `GET /api/email/:id` - Get email content
-
-#### WebSocket
-
-- `GET /api/ws/mailbox/:address` - WebSocket connection for real-time updates
-
-### SMTP Server
-
-- **Host**: localhost (or your domain)
-- **Port**: 2525 (configurable)
-- **Accepts**: Any email to `*@your-tempmail.info`
 
 ## 🧪 Testing
 
-Send a test email to your temporary address:
+### Test SMTP Server
 
 ```bash
-# Using swaks (SMTP test tool)
-swaks --to test123@your-tempmail.info \
+# Using swaks
+swaks --to test@your-tempmail.info \
       --from sender@example.com \
       --server localhost:2525 \
-      --header "Subject: Test Email" \
-      --body "This is a test message"
+      --body "Test email"
 ```
 
-## 🌍 Multi-language Support
+### Test API
 
-The application supports 9 languages:
-- English (en)
-- Russian (ru)
-- Chinese (zh)
-- German (de)
-- French (fr)
-- Spanish (es)
-- Korean (ko)
-- Japanese (ja)
-- Italian (it)
+```bash
+# Create mailbox
+curl -X POST http://localhost:8080/api/mailbox \
+  -H "Content-Type: application/json" \
+  -d '{"expiryMinutes": 30}'
 
-## 📝 License
+# Get emails
+curl http://localhost:8080/api/mailbox/YOUR_ADDRESS/emails
+```
 
-This project is open source and available under the MIT License.
+## 🔒 Security Features
+
+- **AES-256-GCM Encryption**: Email bodies encrypted at rest
+- **PBKDF2 Key Derivation**: 100,000 iterations with SHA-256
+- **Zero-Logging**: No IP addresses or personal data stored
+- **Auto-Deletion**: TTL indexes for automatic cleanup
+- **Rate Limiting**: Per-IP request throttling
+- **Input Validation**: All endpoints protected
+- **HTTPS/WSS**: TLS 1.3 in production
+
+## 📦 Project Structure
+
+```
+.
+├── backend/
+│   ├── internal/
+│   │   ├── api/              # HTTP handlers & router
+│   │   ├── config/           # Configuration management
+│   │   ├── crypto/           # Encryption service
+│   │   ├── database/         # MongoDB & Redis clients
+│   │   ├── models/           # Data structures
+│   │   ├── repository/       # Data access layer
+│   │   ├── smtp/             # SMTP server & parser
+│   │   └── websocket/        # WebSocket hub & client
+│   ├── main.go               # Application entry point
+│   ├── go.mod                # Go dependencies
+│   └── Dockerfile            # Backend container
+├── frontend/
+│   ├── src/
+│   │   ├── app/              # Next.js pages
+│   │   ├── components/       # React components
+│   │   └── lib/              # API & WebSocket clients
+│   ├── package.json          # Node dependencies
+│   └── Dockerfile            # Frontend container
+├── docker-compose.yml        # Service orchestration
+└── .env.example              # Environment template
+```
+
+## 🚢 Production Deployment
+
+### 1. Security Checklist
+
+- [ ] Change `ENCRYPTION_KEY` to secure random 32-byte key
+- [ ] Change `JWT_SECRET` to secure random string
+- [ ] Set `EMAIL_DOMAIN` to your domain
+- [ ] Enable HTTPS/TLS for frontend and backend
+- [ ] Enable WSS for WebSocket connections
+- [ ] Configure firewall rules
+- [ ] Set up MongoDB authentication
+- [ ] Set up Redis password
+- [ ] Configure proper CORS origins
+
+### 2. DNS Configuration
+
+```
+# A Records
+your-domain.com        → Your_Server_IP
+*.your-domain.com      → Your_Server_IP (for wildcard emails)
+
+# MX Record
+your-domain.com   10   mail.your-domain.com
+```
+
+### 3. SMTP Configuration
+
+Update MX records to point to your server for receiving emails.
+
+### 4. Monitoring
+
+- Backend health: `http://your-domain:8080/health`
+- MongoDB: Use MongoDB Compass or mongosh
+- Redis: Use redis-cli or RedisInsight
+- Logs: `docker-compose logs -f`
+
+## 📊 Performance
+
+- **Connection Pooling**: MongoDB (10-100), Redis configured
+- **TTL Indexes**: Automatic email cleanup
+- **Rate Limiting**: 100 requests/minute per IP
+- **WebSocket**: Buffered channels (256 messages)
+- **SMTP**: 10MB max message size, 50 max recipients
+
+## 🐛 Troubleshooting
+
+### Backend won't start
+```bash
+# Check logs
+docker-compose logs backend
+
+# Verify MongoDB connection
+docker exec -it tempmail-mongo mongosh
+
+# Verify Redis connection
+docker exec -it tempmail-redis redis-cli ping
+```
+
+### Emails not receiving
+```bash
+# Check SMTP server logs
+docker-compose logs backend | grep SMTP
+
+# Test SMTP connection
+telnet localhost 2525
+```
+
+### Frontend build fails
+```bash
+# Clear cache
+cd frontend
+rm -rf .next node_modules
+npm install
+npm run build
+```
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## 📄 License
 
-## 📧 Contact
+This project is licensed under the MIT License.
 
-For questions or support:
+## 🙏 Acknowledgements
+
+- Built with [Go](https://golang.org/), [Next.js](https://nextjs.org/), [MongoDB](https://www.mongodb.com/), [Redis](https://redis.io/)
+- SMTP server powered by [go-smtp](https://github.com/emersion/go-smtp)
+- WebSocket implementation using [Gorilla WebSocket](https://github.com/gorilla/websocket)
+
+## 📞 Support
+
+For issues and questions:
+- Open an issue on [GitHub](https://github.com/ARTEMKOPIK/Temp-Mail-NEW-365/issues)
 - Email: contact.tempmail365@gmail.com
-- GitHub Issues: [Create an issue](https://github.com/your-username/temp-mail-365/issues)
-
-## 🙏 Acknowledgments
-
-- Inspired by Temp Mail 365 service
-- Built with love for privacy and security
-- Community-driven development
 
 ---
 
-**⚠️ Important Notice**: This service is for receiving temporary emails only. Do not use it for:
-- Banking or financial accounts
-- Important account registrations
-- Password recovery
-- Any service requiring long-term access
-- Sensitive or confidential information
-
-**Your privacy is our priority. All data is automatically deleted and never recoverable.**
-
-© 2025 Temp Mail 365. All rights reserved.
+**⭐ Star this repo if you find it useful!**
 

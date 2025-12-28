@@ -1,21 +1,26 @@
 version: '3.8'
 
 services:
-  # MongoDB for storing emails
-  mongodb:
+  # MongoDB Database
+  mongo:
     image: mongo:7.0
-    container_name: tempmail-mongodb
+    container_name: tempmail-mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
+      - mongo-data:/data/db
     environment:
-      MONGO_INITDB_DATABASE: tempmail
+      - MONGO_INITDB_DATABASE=tempmail
     networks:
       - tempmail-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Redis for caching and pub/sub
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: tempmail-redis
@@ -23,12 +28,16 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
+      - redis-data:/data
     networks:
       - tempmail-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Backend Go server
+  # Backend API
   backend:
     build:
       context: ./backend
@@ -39,22 +48,34 @@ services:
       - "8080:8080"
       - "2525:2525"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017
-      - MONGODB_DATABASE=tempmail
+      - API_PORT=8080
+      - SMTP_HOST=0.0.0.0
+      - SMTP_PORT=2525
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=tempmail
       - REDIS_URL=redis://redis:6379
       - EMAIL_DOMAIN=your-tempmail.info
+      - EMAIL_EXPIRY_MINUTES=60
+      - ENCRYPTION_KEY=change-this-to-secure-32-byte-key-in-production-now
+      - JWT_SECRET=change-this-jwt-secret-in-production
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW=60
       - FRONTEND_URL=http://localhost:3000
-      - BACKEND_PORT=8080
-      - SMTP_PORT=2525
+      - ENVIRONMENT=development
     depends_on:
-      - mongodb
-      - redis
-    volumes:
-      - ./backend:/app
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - tempmail-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
-  # Frontend Next.js app
+  # Frontend Application
   frontend:
     build:
       context: ./frontend
@@ -69,20 +90,16 @@ services:
       - NEXT_PUBLIC_EMAIL_DOMAIN=your-tempmail.info
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     networks:
       - tempmail-network
-
-volumes:
-  mongodb_data:
-    driver: local
-  redis_data:
-    driver: local
 
 networks:
   tempmail-network:
     driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local
+  redis-data:
+    driver: local
 
